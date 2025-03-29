@@ -1,0 +1,111 @@
+/* Browser Menu and Dropdown Styles */
+.browser-menu-dropdown {
+    position: absolute;
+    top: 50px;
+    right: 10px;
+    background-color: #42414D;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    z-index: 1000;
+    width: 280px;
+    padding: 10px;
+    color: #FBFBFE;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+.menu-dropdown-section {
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.menu-dropdown-section-title {
+    font-weight: bold;
+    margin-bottom: 10px;
+    color: #0A84FF;
+    font-size: 14px;
+    text-transform: uppercase;
+}
+
+.menu-dropdown-item {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.menu-dropdown-item:hover {
+    background-color: rgba(255,255,255,0.1);
+}
+
+.menu-dropdown-item-icon {
+    margin-right: 10px;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.8;
+}
+
+.menu-dropdown-item-icon svg {
+    width: 20px;
+    height: 20px;
+    fill: #FBFBFE;
+}
+
+.menu-dropdown-item-text {
+    flex-grow: 1;
+    font-size: 14px;
+}
+
+.achievements-section {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.achievement-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.achievement-icon {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.achievement-icon svg {
+    width: 20px;
+    height: 20px;
+    fill: #FBFBFE;
+}
+
+.achievement-details {
+    flex-grow: 1;
+}
+
+.achievement-title {
+    font-size: 14px;
+    margin-bottom: 4px;
+}
+
+.achievement-progress {
+    height: 6px;
+    background-color: #38383D;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.achievement-progress-bar {
+    height: 100%;
+    background-color: #0A84FF;
+    transition: width 0.3s ease;
+}
+
