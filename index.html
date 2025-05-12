@@ -553,6 +553,52 @@
     .sunset-preview {
         background: linear-gradient(to right, #fff1f2 50%, #fecdd3 50%);
     }
+
+    /* Full-screen history panel styles */
+    #history-panel {
+      position: fixed;
+      top: 0;
+      right: -100%; /* Initially off-screen to the right */
+      width: 100%;
+      height: 100%;
+      background-color: white;
+      z-index: 50;
+      transition: right 0.3s ease-in-out;
+      overflow-y: auto;
+    }
+
+    /* Animation for history panel */
+    @keyframes slideInFromRight {
+      from {
+        right: -100%;
+      }
+      to {
+        right: 0;
+      }
+    }
+
+    @keyframes slideOutToRight {
+      from {
+        right: 0;
+      }
+      to {
+        right: -100%;
+      }
+    }
+
+    #history-panel.panel-visible {
+      right: 0;
+      animation: slideInFromRight 0.3s ease-in-out forwards;
+    }
+
+    #history-panel.panel-hidden {
+      animation: slideOutToRight 0.3s ease-in-out forwards;
+    }
+
+    /* Update mobile history view */
+    .theme-dark #history-panel {
+      background-color: var(--dark-bg);
+    }
   </style>
 </head>
 <body class="bg-gray-100 h-screen flex flex-col theme-light">
@@ -562,6 +608,12 @@
       <img src="/85d32b57-e47e-4306-aa45-33394b770c89.png" alt="SwiftGuard Logo" class="w-32 h-32 mx-auto mb-8">
       <h1 class="text-4xl font-bold mb-4">Welcome to SwiftGuard</h1>
       <h2 class="text-2xl mb-8">The Privacy-Focused Browser</h2>
+      
+      <!-- New note about iframe limitations -->
+      <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-8" role="alert">
+        <p class="font-bold">Compatibility Note:</p>
+        <p>Some websites may not load correctly due to iframe restrictions. This is beyond our control.</p>
+      </div>
       
       <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
         <div class="text-center p-4">
@@ -731,6 +783,22 @@
           </button>
         </div>
 
+        <!-- Bookmarks Management Section -->
+        <div class="border-b pb-4">
+          <div class="flex justify-between items-center px-3 mb-3">
+            <h3 class="text-sm font-medium">Bookmarks</h3>
+            <button onclick="deleteAllBookmarks()" class="text-red-500 text-xs hover:bg-red-50 p-1 rounded">
+              <i class="fas fa-trash-alt mr-1"></i>Delete All
+            </button>
+          </div>
+          <div id="settings-bookmarks" class="max-h-64 overflow-y-auto">
+            <!-- Bookmarks will be dynamically populated here -->
+            <div class="text-center text-gray-500 py-4">
+              No bookmarks saved
+            </div>
+          </div>
+        </div>
+
         <!-- Theme Selection -->
         <div class="border-b pb-4">
           <h3 class="text-sm font-medium mb-3 px-3">Theme Selection</h3>
@@ -837,29 +905,44 @@
     }
 
     function navigateToUrl(url) {
-        showLoadingBar();
+      showLoadingBar();
 
-        const safeUrl = (url === 'about:home' || url === 'about:blank') 
-            ? 'https://websim.ai/blank' 
-            : url;
+      const safeUrl = (url === 'about:home' || url === 'about:blank') 
+          ? 'https://websim.ai/blank' 
+          : url;
 
-        const tabHistory = tabHistories[currentTabId];
-        if (tabHistory.index < tabHistory.history.length - 1) {
-            tabHistory.history = tabHistory.history.slice(0, tabHistory.index + 1);
-        }
+      const tabHistory = tabHistories[currentTabId];
+      if (tabHistory.index < tabHistory.history.length - 1) {
+          tabHistory.history = tabHistory.history.slice(0, tabHistory.index + 1);
+      }
 
-        tabHistory.history.push(url);
-        tabHistory.index++;
+      tabHistory.history.push(url);
+      tabHistory.index++;
 
-        const currentIframe = document.getElementById(currentTabId);
-        currentIframe.src = safeUrl;
+      const currentIframe = document.getElementById(currentTabId);
+      currentIframe.src = safeUrl;
 
-        updateOmnibox(url);
-        updateNavigationButtons();
+      updateOmnibox(url);
+      updateNavigationButtons();
+
+      // Reset input color after a short delay
+      setTimeout(() => {
+        const omnibox = document.getElementById('omnibox');
+        omnibox.classList.remove('text-blue-600');
+      }, 2000);
+      updateCurrentPageBookmarkStatus();
     }
 
     function updateOmnibox(url) {
-      document.getElementById('omnibox').value = url;
+      const omnibox = document.getElementById('omnibox');
+      omnibox.value = url;
+      
+      // Keep blue color if the current input is a URL
+      if (isValidUrl(url)) {
+        omnibox.classList.add('text-blue-600');
+      } else {
+        omnibox.classList.remove('text-blue-600');
+      }
     }
 
     document.addEventListener('DOMContentLoaded', initializeFirstTab);
@@ -911,36 +994,57 @@
 
     function toggleBookmark() {
       const currentUrl = tabHistories[currentTabId].history[tabHistories[currentTabId].index];
+      const star = document.getElementById('bookmark-star');
+
+      if (currentUrl === 'about:home' || currentUrl === 'about:blank') {
+        alert('You cannot bookmark this page.');
+        return;
+      }
+
       const bookmarkIndex = bookmarks.findIndex(bookmark => bookmark.url === currentUrl);
 
       if (bookmarkIndex !== -1) {
+        // Remove bookmark
         bookmarks.splice(bookmarkIndex, 1);
-        updateBookmarkStar(false);
+        star.classList.remove('text-yellow-400');
+        star.classList.add('text-gray-400');
+        alert('Bookmark removed');
       } else {
-        const title = document.querySelector(`#title-${currentTabId}`).textContent || 'Untitled';
-        bookmarks.push({ title, url: currentUrl });
-        updateBookmarkStar(true);
+        // Add bookmark
+        const title = document.querySelector(`#title-${currentTabId}`)?.textContent || new URL(currentUrl).hostname;
+        bookmarks.push({ 
+          title: title, 
+          url: currentUrl 
+        });
+        star.classList.remove('text-gray-400');
+        star.classList.add('text-yellow-400');
+        alert('Bookmark added');
       }
       
       loadBookmarks();
-      displayHomeBookmarks(); // Update home page bookmarks
-    }
-
-    function updateBookmarkStar(isBookmarked) {
-      const star = document.getElementById('bookmark-star');
-      if (isBookmarked) {
-        star.classList.add('text-yellow-400'); // Highlight the star
-        star.classList.remove('text-gray-400');
-      } else {
-        star.classList.add('text-gray-400'); // Unhighlight the star
-        star.classList.remove('text-yellow-400');
-      }
+      displayHomeBookmarks();
+      renderSettingsBookmarks();
     }
 
     function checkBookmarkStatus() {
       const currentUrl = tabHistories[currentTabId].history[tabHistories[currentTabId].index];
+      const star = document.getElementById('bookmark-star');
+      
+      if (!star) return;
+
       const isBookmarked = bookmarks.some(bookmark => bookmark.url === currentUrl);
-      updateBookmarkStar(isBookmarked);
+      
+      if (isBookmarked) {
+        star.classList.remove('text-gray-400');
+        star.classList.add('text-yellow-400');
+      } else {
+        star.classList.remove('text-yellow-400');
+        star.classList.add('text-gray-400');
+      }
+    }
+
+    function updateCurrentPageBookmarkStatus() {
+      setTimeout(checkBookmarkStatus, 500);
     }
 
     function toggleBookmarks() {
@@ -948,28 +1052,16 @@
       const bookmarkPanel = document.getElementById('bookmark-panel');
       const settingsPanel = document.getElementById('settings-panel');
       
-      // Hide other panels
-      if (!historyPanel.classList.contains('hidden')) {
-        historyPanel.classList.add('panel-hidden');
-        setTimeout(() => historyPanel.classList.add('hidden'), 300);
-      }
-      if (!settingsPanel.classList.contains('hidden')) {
-        settingsPanel.classList.add('panel-hidden');
-        setTimeout(() => settingsPanel.classList.add('hidden'), 300);
-      }
+      historyPanel.classList.add('panel-hidden');
+      settingsPanel.classList.add('panel-hidden');
       
-      // Toggle bookmarks panel
       if (bookmarkPanel.classList.contains('hidden')) {
         bookmarkPanel.classList.remove('hidden');
         bookmarkPanel.classList.remove('panel-hidden');
         bookmarkPanel.classList.add('panel-visible');
         loadBookmarks();
       } else {
-        bookmarkPanel.classList.add('panel-hidden');
-        setTimeout(() => {
-          bookmarkPanel.classList.add('hidden');
-          bookmarkPanel.classList.remove('panel-visible');
-        }, 300);
+        closeBookmarks();
       }
     }
 
@@ -1019,23 +1111,16 @@
       const historyPanel = document.getElementById('history-panel');
       const bookmarkPanel = document.getElementById('bookmark-panel');
       
-      // Hide other panels
-      if (!historyPanel.classList.contains('hidden')) {
-        historyPanel.classList.add('panel-hidden');
-        setTimeout(() => historyPanel.classList.add('hidden'), 300);
-      }
-      if (!bookmarkPanel.classList.contains('hidden')) {
-        bookmarkPanel.classList.add('panel-hidden');
-        setTimeout(() => bookmarkPanel.classList.add('hidden'), 300);
-      }
+      historyPanel.classList.add('panel-hidden');
+      bookmarkPanel.classList.add('panel-hidden');
       
-      // Toggle settings panel
       if (settingsPanel.classList.contains('hidden')) {
         settingsPanel.classList.remove('hidden');
         settingsPanel.classList.remove('panel-hidden');
         settingsPanel.classList.add('panel-visible');
         
-        // Show overlay
+        renderSettingsBookmarks();
+        
         settingsOverlay.classList.add('visible');
       } else {
         closeSettings();
@@ -1058,17 +1143,14 @@
     function initializeThemeHandlers() {
       const themeOptions = document.querySelectorAll('.theme-option');
       
-      // Always start with light theme
       const savedTheme = localStorage.getItem('browser-theme') || 'light';
       document.querySelector(`#theme-${savedTheme}`).classList.add('selected');
       applyTheme(savedTheme);
 
       themeOptions.forEach(option => {
         option.addEventListener('click', (e) => {
-          // Remove selected class from all options
           themeOptions.forEach(opt => opt.classList.remove('selected'));
           
-          // Add selected class to clicked option
           option.classList.add('selected');
           
           const selectedTheme = option.getAttribute('data-theme');
@@ -1078,7 +1160,6 @@
       });
     }
 
-    // Call this when the page loads
     document.addEventListener('DOMContentLoaded', initializeThemeHandlers);
 
     document.addEventListener('keydown', function(event) {
@@ -1134,7 +1215,6 @@
       const loadingBar = document.getElementById('loading-bar');
       loadingBar.classList.add('loading');
       
-      // Remove loading bar after a short delay
       setTimeout(() => {
         loadingBar.classList.remove('loading');
       }, 1500);
@@ -1202,55 +1282,100 @@
 
     function showHistory() {
       const historyPanel = document.getElementById('history-panel');
-      historyPanel.classList.remove('hidden');
+      const bookmarkPanel = document.getElementById('bookmark-panel');
+      const settingsPanel = document.getElementById('settings-panel');
+      
+      bookmarkPanel.classList.add('panel-hidden');
+      settingsPanel.classList.add('panel-hidden');
+      
+      if (historyPanel.classList.contains('hidden')) {
+        historyPanel.classList.remove('hidden');
+        historyPanel.classList.remove('panel-hidden');
+        historyPanel.classList.add('panel-visible');
+        loadHistoryEntries();
+      } else {
+        closeHistory();
+      }
     }
 
     function closeHistory() {
       const historyPanel = document.getElementById('history-panel');
-      historyPanel.classList.add('hidden');
+      
+      historyPanel.classList.add('panel-hidden');
+      
+      setTimeout(() => {
+        historyPanel.classList.add('hidden');
+        historyPanel.classList.remove('panel-visible', 'panel-hidden');
+      }, 300);
     }
 
-    function clearBrowsingData() {
-      if (confirm('Are you sure you want to clear all browsing data? This cannot be undone.')) {
-        Object.keys(tabHistories).forEach(tabId => {
-          if (tabId === currentTabId) {
-            tabHistories[tabId] = { history: ['about:home'], index: 0 };
-            navigateToUrl('about:home');
-          } else {
-            tabHistories[tabId] = { history: ['about:home'], index: 0 };
+    function loadHistoryEntries() {
+      const historyEntriesContainer = document.getElementById('history-entries');
+      historyEntriesContainer.innerHTML = ''; // Clear previous entries
+
+      const allHistory = [];
+      Object.values(tabHistories).forEach(tabHistory => {
+        tabHistory.history.forEach((url, index) => {
+          if (url !== 'about:home' && url !== 'about:blank') {
+            allHistory.push(url);
           }
         });
+      });
 
-        document.querySelectorAll('#iframe-container iframe').forEach(iframe => {
-          if (iframe.id === currentTabId) {
-            iframe.src = 'about:home';
-          } else {
-            iframe.src = 'about:blank';
-          }
-        });
+      const uniqueHistory = [...new Set(allHistory)].slice(-50).reverse();
 
-        alert('Browsing data has been cleared.');
+      if (uniqueHistory.length === 0) {
+        historyEntriesContainer.innerHTML = `
+          <div class="text-center text-gray-500 py-8">
+            No browsing history available
+          </div>
+        `;
+        return;
       }
+
+      uniqueHistory.forEach(url => {
+        try {
+          const parsedUrl = new URL(url);
+          const historyItem = document.createElement('div');
+          historyItem.className = 'p-3 hover:bg-gray-100 rounded cursor-pointer flex items-center space-x-3 border-b';
+
+          historyItem.innerHTML = `
+            <img src="https://www.google.com/s2/favicons?domain=${parsedUrl.hostname}" 
+                 class="w-5 h-5" alt="favicon" width="20" height="20">
+            <div class="flex-1">
+              <div class="text-sm truncate">${parsedUrl.hostname}</div>
+              <div class="text-xs text-gray-500 truncate">${url}</div>
+            </div>
+            <button class="text-gray-500 hover:text-red-500" onclick="removeHistoryEntry('${url}')">
+              <i class="fas fa-trash-alt"></i>
+            </button>
+          `;
+          
+          historyItem.addEventListener('click', () => {
+            navigateToUrl(url);
+            closeHistory();
+          });
+
+          historyEntriesContainer.appendChild(historyItem);
+        } catch (e) {
+          console.error('Invalid URL in history:', url);
+        }
+      });
     }
 
-    function shareSwiftGuard() {
-      if (navigator.share) {
-        navigator.share({
-          title: 'SwiftGuard Browser',
-          text: 'Check out SwiftGuard - The Privacy-Focused Browser',
-          url: window.location.href
-        }).catch(console.error);
-      } else {
-        const dummyInput = document.createElement('input');
-        dummyInput.value = window.location.href;
-        document.body.appendChild(dummyInput);
-        dummyInput.select();
-        document.execCommand('copy');
-        document.body.removeChild(dummyInput);
-        alert('Link copied to clipboard!');
-      }
-    }
+    function removeHistoryEntry(url) {
+      Object.keys(tabHistories).forEach(tabId => {
+        const tabHistory = tabHistories[tabId];
+        tabHistory.history = tabHistory.history.filter(historyUrl => historyUrl !== url);
+        
+        if (tabHistory.index >= tabHistory.history.length) {
+          tabHistory.index = tabHistory.history.length - 1;
+        }
+      });
 
+      loadHistoryEntries();
+    }
+    
     function goHome() {
       navigateToUrl('about:home');
       document.getElementById('browser-home').style.display = 'flex';
@@ -1286,17 +1411,143 @@
     }
 
     function applyTheme(theme) {
-      // Remove all theme classes
       document.body.classList.remove('theme-light', 'theme-dark', 'theme-ocean', 'theme-forest', 'theme-sunset');
-      // Add selected theme
       document.body.classList.add(`theme-${theme}`);
       
-      // Update header and UI elements
       const header = document.querySelector('header');
       const tabBar = document.getElementById('tab-bar');
       
       header.className = `${theme}-header p-2 flex items-center space-x-1`;
       tabBar.className = `${theme}-header flex items-center`;
+    }
+
+    function isValidUrl(string) {
+      try {
+        new URL(string);
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
+    document.getElementById('omnibox').addEventListener('keypress', function(event) {
+      if (event.key === 'Enter') {
+        const input = this.value.trim();
+        let url = input;
+
+        if (!isValidUrl(input)) {
+          if (/^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/.test(input)) {
+            url = `https://${input}`;
+          } else {
+            url = `https://www.bing.com/search?q=${encodeURIComponent(input)}`;
+          }
+        }
+
+        navigateToUrl(url);
+        this.value = url; 
+        this.classList.add('text-blue-600'); 
+      }
+    });
+
+    function shareSwiftGuard() {
+      const shareData = {
+        title: 'SwiftGuard Browser',
+        text: 'Check out SwiftGuard, a privacy-focused web browser!',
+        url: window.location.href
+      };
+
+      if (navigator.share) {
+        navigator.share(shareData)
+          .then(() => console.log('Successfully shared'))
+          .catch((error) => console.log('Error sharing:', error));
+      } else {
+        navigator.clipboard.writeText(`${shareData.title}\n\n${shareData.text}\n\n${shareData.url}`)
+          .then(() => {
+            alert('Link copied to clipboard! Share it with your friends.');
+          })
+          .catch((err) => {
+            console.error('Could not copy text: ', err);
+            alert('Unable to share. Please copy the link manually.');
+          });
+      }
+    }
+
+    function clearBrowsingData() {
+      Object.keys(tabHistories).forEach(tabId => {
+        tabHistories[tabId] = { history: ['about:home'], index: 0 };
+      });
+
+      bookmarks.length = 0;
+
+      goHome();
+
+      localStorage.removeItem('browser-theme');
+
+      alert('Browsing data cleared successfully!');
+
+      displayHomeBookmarks();
+      
+      const savedTheme = localStorage.getItem('browser-theme') || 'light';
+      applyTheme(savedTheme);
+
+      closeSettings();
+    }
+
+    function renderSettingsBookmarks() {
+      const settingsBookmarksContainer = document.getElementById('settings-bookmarks');
+      
+      settingsBookmarksContainer.innerHTML = '';
+
+      if (bookmarks.length === 0) {
+        settingsBookmarksContainer.innerHTML = `
+          <div class="text-center text-gray-500 py-4">
+            No bookmarks saved
+          </div>
+        `;
+        return;
+      }
+
+      bookmarks.forEach((bookmark, index) => {
+        try {
+          const url = new URL(bookmark.url);
+          const bookmarkItem = document.createElement('div');
+          bookmarkItem.className = 'flex items-center justify-between p-2 hover:bg-gray-100 rounded';
+          
+          bookmarkItem.innerHTML = `
+            <div class="flex items-center space-x-3">
+              <img src="https://www.google.com/s2/favicons?domain=${url.hostname}" 
+                   class="w-4 h-4" alt="favicon" width="16" height="16">
+              <div>
+                <div class="text-sm">${bookmark.title}</div>
+                <div class="text-xs text-gray-500 truncate max-w-[200px]">${bookmark.url}</div>
+              </div>
+            </div>
+            <button onclick="removeBookmarkFromSettings(${index})" class="text-red-500 hover:bg-red-100 p-1 rounded">
+              <i class="fas fa-trash-alt"></i>
+            </button>
+          `;
+          
+          settingsBookmarksContainer.appendChild(bookmarkItem);
+        } catch (e) {
+          console.error('Invalid bookmark URL:', bookmark.url);
+        }
+      });
+    }
+
+    function removeBookmarkFromSettings(index) {
+      bookmarks.splice(index, 1);
+      renderSettingsBookmarks();
+      loadBookmarks(); 
+      displayHomeBookmarks(); 
+    }
+
+    function deleteAllBookmarks() {
+      if (confirm('Are you sure you want to delete all bookmarks?')) {
+        bookmarks.length = 0; 
+        renderSettingsBookmarks();
+        loadBookmarks(); 
+        displayHomeBookmarks(); 
+      }
     }
   </script>
 </body>
