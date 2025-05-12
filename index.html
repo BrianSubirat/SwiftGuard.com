@@ -6,6 +6,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
   <script src="https://unpkg.com/@ungap/custom-elements-builtin"></script>
+  <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
   <style>
     :root {
       /* Light Theme (Default) */
@@ -280,18 +281,14 @@
 
       /* More compact search/address bar */
       .flex-1.bg-white.rounded-full {
-        display: flex;
-        align-items: center;
-        height: 36px;
-        padding: 0 0.5rem;
-        border-radius: 18px;
+        height: 42px;
+        padding: 0 0.75rem;
       }
 
       /* Omnibox (address input) styling */
       #omnibox {
-        flex: 1;
         font-size: 14px;
-        padding: 0.25rem;
+        padding: 0.5rem;
         height: 100%;
       }
 
@@ -599,6 +596,125 @@
     .theme-dark #history-panel {
       background-color: var(--dark-bg);
     }
+
+    /* Hide tab bar on mobile devices */
+    @media (max-width: 768px) {
+        #tab-bar {
+            display: none !important;
+        }
+    }
+    
+    /* Update address bar styles */
+    .flex-1.bg-white.rounded-full {
+        height: 48px;
+        padding: 0 1rem;
+    }
+
+    #omnibox {
+        font-size: 16px;
+        padding: 0.5rem;
+        height: 100%;
+    }
+
+    /* Mobile adjustments to maintain responsiveness */
+    @media (max-width: 768px) {
+        .flex-1.bg-white.rounded-full {
+            height: 42px;
+            padding: 0 0.75rem;
+        }
+
+        #omnibox {
+            font-size: 14px;
+        }
+    }
+
+    /* QR Code Modal Styles */
+    #qr-code-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.7);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 100;
+    }
+
+    #qr-code-container {
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        max-width: 80%;
+        text-align: center;
+    }
+
+    /* Inspect Mode Overlay */
+    #inspect-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        display: none;
+        z-index: 90;
+        pointer-events: none;
+    }
+
+    #inspect-info {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0,0,0,0.8);
+        color: white;
+        padding: 10px 20px;
+        border-radius: 20px;
+        z-index: 100;
+        display: none;
+    }
+    
+    /* Add these styles for the custom context menu */
+    #custom-context-menu {
+      position: fixed;
+      background-color: white;
+      border: 1px solid #ddd;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      z-index: 1000;
+      display: none;
+      border-radius: 8px;
+      padding: 8px 0;
+      min-width: 200px;
+    }
+
+    .theme-dark #custom-context-menu {
+      background-color: #35363a;
+      border-color: #4a4a4a;
+      color: #e8eaed;
+    }
+
+    #custom-context-menu .context-menu-item {
+      padding: 8px 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    #custom-context-menu .context-menu-item:hover {
+      background-color: #f0f0f0;
+    }
+
+    .theme-dark #custom-context-menu .context-menu-item:hover {
+      background-color: #4a4a4a;
+    }
+
+    #custom-context-menu .context-menu-item i {
+      width: 20px;
+      text-align: center;
+    }
   </style>
 </head>
 <body class="bg-gray-100 h-screen flex flex-col theme-light">
@@ -678,7 +794,7 @@
 
     <!-- Desktop Controls (hidden on mobile) -->
     <div class="hidden sm:flex space-x-1">
-      <button class="p-1 rounded-full hover:bg-gray-300 hidden sm:block hidden-mobile" onclick="openHistory()">
+      <button class="p-1 rounded-full hover:bg-gray-300 hidden sm:block hidden-mobile" onclick="showHistory()">
         <i class="fas fa-history text-gray-600 text-sm"></i>
       </button>
       <button class="p-1 rounded-full hover:bg-gray-300" onclick="toggleBookmarks()">
@@ -846,7 +962,66 @@
             <span>Share SwiftGuard</span>
           </button>
         </div>
+
+        <!-- Advanced Tools Section -->
+        <div class="border-b pb-4">
+          <h3 class="text-sm font-medium px-3 mb-3">Advanced Tools</h3>
+          <div class="space-y-2">
+            <button onclick="createQRCode()" class="w-full text-left py-2 px-3 rounded-lg hover:bg-gray-100 flex items-center">
+              <i class="fas fa-qrcode mr-3 text-gray-600"></i>
+              <span>Generate QR Code</span>
+            </button>
+            
+            <!-- Updated Zoom and Fullscreen Section -->
+            <div class="flex items-center space-x-2 px-3 py-2 hover:bg-gray-100 rounded-lg">
+              <i class="fas fa-expand mr-3 text-gray-600"></i>
+              <span class="flex-1">Fullscreen</span>
+              <div class="flex items-center space-x-2">
+                <button onclick="zoomOut()" class="p-1 hover:bg-gray-200 rounded-full">
+                  <i class="fas fa-search-minus text-gray-600"></i>
+                </button>
+                <span id="zoom-level" class="text-sm text-gray-600">100%</span>
+                <button onclick="zoomIn()" class="p-1 hover:bg-gray-200 rounded-full">
+                  <i class="fas fa-search-plus text-gray-600"></i>
+                </button>
+                <button onclick="toggleFullscreen()" class="p-1 hover:bg-gray-200 rounded-full">
+                  <i class="fas fa-expand text-gray-600"></i>
+                </button>
+              </div>
+            </div>
+
+            <button onclick="toggleInspectMode()" class="w-full text-left py-2 px-3 rounded-lg hover:bg-gray-100 flex items-center">
+              <i class="fas fa-eye mr-3 text-gray-600"></i>
+              <span>Inspect Mode</span>
+            </button>
+          </div>
+        </div>
       </div>
+    </div>
+  </div>
+
+  <div id="qr-code-modal">
+    <div id="qr-code-container">
+        <div id="qr-code"></div>
+        <button onclick="closeQRCode()" class="mt-4 bg-blue-500 text-white px-4 py-2 rounded">Close</button>
+    </div>
+  </div>
+
+  <div id="inspect-overlay"></div>
+  <div id="inspect-info"></div>
+
+  <div id="custom-context-menu">
+    <div class="context-menu-item" onclick="toggleInspectMode()">
+      <i class="fas fa-eye"></i>
+      Inspect
+    </div>
+    <div class="context-menu-item" onclick="toggleBookmark()">
+      <i class="fas fa-bookmark"></i>
+      Bookmark Site
+    </div>
+    <div class="context-menu-item" onclick="showPerformanceInfo()">
+      <i class="fas fa-chart-line"></i>
+      Performance
     </div>
   </div>
 
@@ -855,43 +1030,239 @@
     let currentTabId = 'tab-1';
     const tabHistories = {};
     const bookmarks = [];
+    let currentZoomLevel = 100;
 
-    // Initialize history for the first tab
-    tabHistories[currentTabId] = { history: ['about:home'], index: 0 };
-
-    // Activate a tab
-    function activateTab(tabElement) {
-      // Do nothing on mobile
+    function initializeTabBar() {
+        const tabBar = document.getElementById('tab-bar');
+        tabBar.style.display = 'flex';
     }
 
-    // Modify createNewTab function to work without tabs on mobile
     function createNewTab(url = null) {
-      // On mobile, simply navigate to the URL or home
-      const initialUrl = url || 'about:home';
-      
-      // Clear existing iframe
-      const iframeContainer = document.getElementById('iframe-container');
-      iframeContainer.innerHTML = '';
+        tabCount++;
+        const tabId = `tab-${tabCount}`;
+        
+        // Create tab element
+        const tabsContainer = document.getElementById('tabs-container');
+        const newTab = document.createElement('div');
+        newTab.id = tabId;
+        newTab.className = 'tab-hover flex items-center justify-between cursor-pointer';
+        newTab.setAttribute('data-tab', tabId);
+        newTab.innerHTML = `
+            <div class="flex items-center space-x-2">
+                <img id="icon-${tabId}" src="https://www.google.com/s2/favicons?domain=about:home" 
+                     class="w-4 h-4" alt="favicon">
+                <span id="title-${tabId}" class="text-sm">New Tab</span>
+            </div>
+            <button class="close-tab opacity-0 hover:bg-gray-200 rounded-full p-1" 
+                    onclick="removeTab(this, event)">
+                <i class="fas fa-times text-xs"></i>
+            </button>
+        `;
+        
+        newTab.addEventListener('click', () => activateTab(newTab));
+        
+        tabsContainer.appendChild(newTab);
 
-      // Create new iframe
-      const iframe = createIframe(initialUrl, 'mobile-tab');
-      iframeContainer.appendChild(iframe);
+        // Create iframe
+        const iframeContainer = document.getElementById('iframe-container');
+        const initialUrl = url || 'about:home';
+        
+        // Hide all iframes
+        const existingIframes = iframeContainer.querySelectorAll('iframe');
+        existingIframes.forEach(iframe => iframe.style.display = 'none');
 
-      // Update current tab history
-      tabHistories['mobile-tab'] = { history: [initialUrl], index: 0 };
-      currentTabId = 'mobile-tab';
+        const iframe = createIframe(initialUrl, tabId);
+        iframeContainer.appendChild(iframe);
 
-      if (!url) {
-        document.getElementById('browser-home').style.display = 'flex';
-        displayHomeBookmarks();
-      } else {
-        document.getElementById('browser-home').style.display = 'none';
-      }
+        // Initialize tab history
+        tabHistories[tabId] = { history: [initialUrl], index: 0 };
+
+        // Activate the new tab
+        activateTab(newTab);
+
+        // Show home screen if no specific URL is loaded
+        if (!url) {
+            document.getElementById('browser-home').style.display = 'flex';
+            displayHomeBookmarks();
+        }
+
+        return tabId;
     }
 
     function createIframe(url, id) {
         const safeUrl = (url === 'about:home' || url === 'about:blank') 
-            ? 'https://websim.ai/blank' 
+            ? 'about:blank' 
+            : url;
+
+        const iframe = document.createElement('iframe');
+        iframe.id = id;
+        iframe.src = safeUrl;
+        iframe.className = 'w-full h-full border-none';
+        iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation');
+        iframe.onload = () => updateTabInfo(iframe);
+
+        return iframe;
+    }
+
+    function activateTab(tabElement) {
+        // Remove active state from all tabs
+        const tabs = document.querySelectorAll('.tab-hover');
+        tabs.forEach(tab => {
+            tab.classList.remove('tab-active');
+        });
+
+        // Add active state to clicked tab
+        tabElement.classList.add('tab-active');
+
+        // Get the tab ID
+        const tabId = tabElement.getAttribute('data-tab');
+        
+        // Hide all iframes
+        const iframes = document.querySelectorAll('iframe');
+        iframes.forEach(iframe => {
+            iframe.style.display = 'none';
+        });
+
+        // Show current tab's iframe
+        const currentIframe = document.getElementById(tabId);
+        if (currentIframe) {
+            currentIframe.style.display = 'block';
+        }
+
+        // Update current tab
+        currentTabId = tabId;
+
+        // Update omnibox and navigation buttons
+        const currentUrl = tabHistories[tabId].history[tabHistories[tabId].index];
+        updateOmnibox(currentUrl);
+        updateNavigationButtons();
+        updateCurrentPageBookmarkStatus();
+    }
+
+    function removeTab(closeButton, event) {
+        event.stopPropagation();
+        const tabElement = closeButton.closest('.tab-hover');
+        const tabId = tabElement.getAttribute('data-tab');
+
+        // Remove tab and its iframe
+        tabElement.remove();
+        const iframe = document.getElementById(tabId);
+        iframe.remove();
+
+        // Delete tab history
+        delete tabHistories[tabId];
+
+        // If no tabs left, create a new tab
+        const remainingTabs = document.querySelectorAll('.tab-hover');
+        if (remainingTabs.length === 0) {
+            createNewTab();
+        } else {
+            // Activate the last tab
+            activateTab(remainingTabs[remainingTabs.length - 1]);
+        }
+    }
+
+    function navigateBack() {
+        const tabHistory = tabHistories[currentTabId];
+        if (tabHistory.index > 0) {
+            tabHistory.index--;
+            const previousUrl = tabHistory.history[tabHistory.index];
+            
+            const currentIframe = document.getElementById(currentTabId);
+            currentIframe.src = previousUrl;
+            
+            updateOmnibox(previousUrl);
+            updateNavigationButtons();
+        }
+    }
+
+    function navigateForward() {
+        const tabHistory = tabHistories[currentTabId];
+        if (tabHistory.index < tabHistory.history.length - 1) {
+            tabHistory.index++;
+            const nextUrl = tabHistory.history[tabHistory.index];
+            
+            const currentIframe = document.getElementById(currentTabId);
+            currentIframe.src = nextUrl;
+            
+            updateOmnibox(nextUrl);
+            updateNavigationButtons();
+        }
+    }
+
+    function updateTabInfo(iframe) {
+        try {
+            const tabId = iframe.id;
+            const tabElement = document.querySelector(`[data-tab="${tabId}"]`);
+            if (!tabElement) return;
+
+            const iframeSrc = iframe.src || 'about:blank';
+            let tabURL;
+            try {
+                tabURL = new URL(iframeSrc);
+            } catch (e) {
+                tabURL = new URL('about:blank');
+            }
+
+            const iconElement = document.getElementById(`icon-${tabId}`);
+            if (iconElement) {
+                iconElement.src = `https://www.google.com/s2/favicons?domain=${tabURL.hostname}`;
+            }
+
+            const titleElement = document.getElementById(`title-${tabId}`);
+            if (titleElement) {
+                let pageTitle = '';
+                try {
+                    if (iframe.contentDocument && iframe.contentDocument.title) {
+                        pageTitle = iframe.contentDocument.title;
+                    }
+                } catch (e) {
+                    pageTitle = tabURL.hostname || 'New Tab';
+                }
+                titleElement.textContent = pageTitle || tabURL.hostname || 'New Tab';
+            }
+
+            if (currentTabId === tabId) {
+                updateOmnibox(iframeSrc);
+            }
+        } catch (error) {
+            console.error('Error updating tab info:', error);
+        }
+    }
+
+    function updateOmnibox(url) {
+        const omnibox = document.getElementById('omnibox');
+        omnibox.value = url;
+        
+        // Keep blue color if the current input is a URL
+        if (isValidUrl(url)) {
+            omnibox.classList.add('text-blue-600');
+        } else {
+            omnibox.classList.remove('text-blue-600');
+        }
+    }
+
+    function updateNavigationButtons() {
+        const tabHistory = tabHistories[currentTabId];
+        const backButton = document.getElementById('back-button');
+        const forwardButton = document.getElementById('forward-button');
+
+        if (tabHistory.index > 0) {
+            backButton.classList.remove('opacity-50', 'cursor-not-allowed');
+        } else {
+            backButton.classList.add('opacity-50', 'cursor-not-allowed');
+        }
+
+        if (tabHistory.index < tabHistory.history.length - 1) {
+            forwardButton.classList.remove('opacity-50', 'cursor-not-allowed');
+        } else {
+            forwardButton.classList.add('opacity-50', 'cursor-not-allowed');
+        }
+    }
+
+    function createIframe(url, id) {
+        const safeUrl = (url === 'about:home' || url === 'about:blank') 
+            ? 'about:blank' 
             : url;
 
         const iframe = document.createElement('iframe');
@@ -905,649 +1276,848 @@
     }
 
     function navigateToUrl(url) {
-      showLoadingBar();
+        showLoadingBar();
 
-      const safeUrl = (url === 'about:home' || url === 'about:blank') 
-          ? 'https://websim.ai/blank' 
-          : url;
+        const safeUrl = (url === 'about:home' || url === 'about:blank') 
+            ? 'about:blank' 
+            : url;
 
-      const tabHistory = tabHistories[currentTabId];
-      if (tabHistory.index < tabHistory.history.length - 1) {
-          tabHistory.history = tabHistory.history.slice(0, tabHistory.index + 1);
-      }
+        const tabHistory = tabHistories[currentTabId];
+        if (tabHistory.index < tabHistory.history.length - 1) {
+            tabHistory.history = tabHistory.history.slice(0, tabHistory.index + 1);
+        }
 
-      tabHistory.history.push(url);
-      tabHistory.index++;
+        tabHistory.history.push(url);
+        tabHistory.index++;
 
-      const currentIframe = document.getElementById(currentTabId);
-      currentIframe.src = safeUrl;
+        const currentIframe = document.getElementById(currentTabId);
+        currentIframe.src = safeUrl;
 
-      updateOmnibox(url);
-      updateNavigationButtons();
+        updateOmnibox(url);
+        updateNavigationButtons();
 
-      // Reset input color after a short delay
-      setTimeout(() => {
-        const omnibox = document.getElementById('omnibox');
-        omnibox.classList.remove('text-blue-600');
-      }, 2000);
-      updateCurrentPageBookmarkStatus();
-    }
-
-    function updateOmnibox(url) {
-      const omnibox = document.getElementById('omnibox');
-      omnibox.value = url;
-      
-      // Keep blue color if the current input is a URL
-      if (isValidUrl(url)) {
-        omnibox.classList.add('text-blue-600');
-      } else {
-        omnibox.classList.remove('text-blue-600');
-      }
-    }
-
-    document.addEventListener('DOMContentLoaded', initializeFirstTab);
-
-    function updateTabInfo(iframe) {
-      try {
-          const tabId = iframe.id;
-          const tabElement = document.querySelector(`[data-tab="${tabId}"]`);
-          if (!tabElement) return;
-
-          const iframeSrc = iframe.src || 'about:blank';
-          let tabURL;
-          try {
-              tabURL = new URL(iframeSrc);
-          } catch (e) {
-              tabURL = new URL('about:blank');
-          }
-
-          const iconElement = document.getElementById(`icon-${tabId}`);
-          if (iconElement) {
-              iconElement.src = `https://www.google.com/s2/favicons?domain=${tabURL.hostname}`;
-          }
-
-          const titleElement = document.getElementById(`title-${tabId}`);
-          if (titleElement) {
-              let pageTitle = '';
-              try {
-                  if (iframe.contentDocument && iframe.contentDocument.title) {
-                      pageTitle = iframe.contentDocument.title;
-                  }
-              } catch (e) {
-                  pageTitle = tabURL.hostname || 'New Tab';
-              }
-              titleElement.textContent = pageTitle || tabURL.hostname || 'New Tab';
-          }
-
-          if (currentTabId === tabId) {
-              updateOmnibox(iframeSrc);
-          }
-      } catch (error) {
-          console.error('Error updating tab info:', error);
-      }
-    }
-
-    function removeTab(closeButton, event) {
-      event.stopPropagation();
-      goHome();
-    }
-
-    function toggleBookmark() {
-      const currentUrl = tabHistories[currentTabId].history[tabHistories[currentTabId].index];
-      const star = document.getElementById('bookmark-star');
-
-      if (currentUrl === 'about:home' || currentUrl === 'about:blank') {
-        alert('You cannot bookmark this page.');
-        return;
-      }
-
-      const bookmarkIndex = bookmarks.findIndex(bookmark => bookmark.url === currentUrl);
-
-      if (bookmarkIndex !== -1) {
-        // Remove bookmark
-        bookmarks.splice(bookmarkIndex, 1);
-        star.classList.remove('text-yellow-400');
-        star.classList.add('text-gray-400');
-        alert('Bookmark removed');
-      } else {
-        // Add bookmark
-        const title = document.querySelector(`#title-${currentTabId}`)?.textContent || new URL(currentUrl).hostname;
-        bookmarks.push({ 
-          title: title, 
-          url: currentUrl 
-        });
-        star.classList.remove('text-gray-400');
-        star.classList.add('text-yellow-400');
-        alert('Bookmark added');
-      }
-      
-      loadBookmarks();
-      displayHomeBookmarks();
-      renderSettingsBookmarks();
-    }
-
-    function checkBookmarkStatus() {
-      const currentUrl = tabHistories[currentTabId].history[tabHistories[currentTabId].index];
-      const star = document.getElementById('bookmark-star');
-      
-      if (!star) return;
-
-      const isBookmarked = bookmarks.some(bookmark => bookmark.url === currentUrl);
-      
-      if (isBookmarked) {
-        star.classList.remove('text-gray-400');
-        star.classList.add('text-yellow-400');
-      } else {
-        star.classList.remove('text-yellow-400');
-        star.classList.add('text-gray-400');
-      }
+        // Reset input color after a short delay
+        setTimeout(() => {
+            const omnibox = document.getElementById('omnibox');
+            omnibox.classList.remove('text-blue-600');
+        }, 2000);
+        updateCurrentPageBookmarkStatus();
     }
 
     function updateCurrentPageBookmarkStatus() {
-      setTimeout(checkBookmarkStatus, 500);
+        setTimeout(checkBookmarkStatus, 500);
+    }
+
+    function checkBookmarkStatus() {
+        const currentUrl = tabHistories[currentTabId].history[tabHistories[currentTabId].index];
+        const star = document.getElementById('bookmark-star');
+        
+        if (!star) return;
+
+        const isBookmarked = bookmarks.some(bookmark => bookmark.url === currentUrl);
+        
+        if (isBookmarked) {
+            star.classList.remove('text-gray-400');
+            star.classList.add('text-yellow-400');
+        } else {
+            star.classList.remove('text-yellow-400');
+            star.classList.add('text-gray-400');
+        }
     }
 
     function toggleBookmarks() {
-      const historyPanel = document.getElementById('history-panel');
-      const bookmarkPanel = document.getElementById('bookmark-panel');
-      const settingsPanel = document.getElementById('settings-panel');
-      
-      historyPanel.classList.add('panel-hidden');
-      settingsPanel.classList.add('panel-hidden');
-      
-      if (bookmarkPanel.classList.contains('hidden')) {
-        bookmarkPanel.classList.remove('hidden');
-        bookmarkPanel.classList.remove('panel-hidden');
-        bookmarkPanel.classList.add('panel-visible');
-        loadBookmarks();
-      } else {
-        closeBookmarks();
-      }
+        const historyPanel = document.getElementById('history-panel');
+        const bookmarkPanel = document.getElementById('bookmark-panel');
+        const settingsPanel = document.getElementById('settings-panel');
+        
+        historyPanel.classList.add('panel-hidden');
+        settingsPanel.classList.add('panel-hidden');
+        
+        if (bookmarkPanel.classList.contains('hidden')) {
+            bookmarkPanel.classList.remove('hidden');
+            bookmarkPanel.classList.remove('panel-hidden');
+            bookmarkPanel.classList.add('panel-visible');
+            loadBookmarks();
+        } else {
+            closeBookmarks();
+        }
     }
 
     function closeBookmarks() {
-      const bookmarkPanel = document.getElementById('bookmark-panel');
-      bookmarkPanel.classList.add('panel-hidden');
-      setTimeout(() => {
-        bookmarkPanel.classList.add('hidden');
-        bookmarkPanel.classList.remove('panel-visible');
-      }, 300);
+        const bookmarkPanel = document.getElementById('bookmark-panel');
+        bookmarkPanel.classList.add('panel-hidden');
+        setTimeout(() => {
+            bookmarkPanel.classList.add('hidden');
+            bookmarkPanel.classList.remove('panel-visible');
+        }, 300);
     }
 
     function loadBookmarks() {
-      const bookmarkEntriesContainer = document.getElementById('bookmark-entries');
-      bookmarkEntriesContainer.innerHTML = '';
+        const bookmarkEntriesContainer = document.getElementById('bookmark-entries');
+        bookmarkEntriesContainer.innerHTML = '';
 
-      bookmarks.forEach(bookmark => {
-        try {
-          const url = new URL(bookmark.url);
-          const bookmarkItem = document.createElement('div');
-          bookmarkItem.className = 'p-2 hover:bg-gray-100 rounded cursor-pointer flex items-center space-x-3';
+        bookmarks.forEach(bookmark => {
+            try {
+                const url = new URL(bookmark.url);
+                const bookmarkItem = document.createElement('div');
+                bookmarkItem.className = 'p-2 hover:bg-gray-100 rounded cursor-pointer flex items-center space-x-3';
 
-          bookmarkItem.innerHTML = `
-            <img src="https://www.google.com/s2/favicons?domain=${url.hostname}" 
-                 class="w-4 h-4" alt="favicon" width="16" height="16">
-            <div class="flex-1">
-              <div class="text-sm truncate">${bookmark.title}</div>
-              <div class="text-xs text-gray-500 truncate">${bookmark.url}</div>
-            </div>
-          `;
-          
-          bookmarkItem.addEventListener('click', () => {
-            navigateToUrl(bookmark.url);
-            closeBookmarks();
-          });
+                bookmarkItem.innerHTML = `
+                    <img src="https://www.google.com/s2/favicons?domain=${url.hostname}" 
+                         class="w-4 h-4" alt="favicon" width="16" height="16">
+                    <div class="flex-1">
+                        <div class="text-sm truncate">${bookmark.title}</div>
+                        <div class="text-xs text-gray-500 truncate">${bookmark.url}</div>
+                    </div>
+                `;
+                
+                bookmarkItem.addEventListener('click', () => {
+                    navigateToUrl(bookmark.url);
+                    closeBookmarks();
+                });
 
-          bookmarkEntriesContainer.appendChild(bookmarkItem);
-        } catch (e) {
-          console.error('Invalid URL in bookmark:', bookmark.url);
-        }
-      });
+                bookmarkEntriesContainer.appendChild(bookmarkItem);
+            } catch (e) {
+                console.error('Invalid URL in bookmark:', bookmark.url);
+            }
+        });
     }
 
     function toggleSettings() {
-      const settingsPanel = document.getElementById('settings-panel');
-      const settingsOverlay = document.getElementById('settings-overlay');
-      const historyPanel = document.getElementById('history-panel');
-      const bookmarkPanel = document.getElementById('bookmark-panel');
-      
-      historyPanel.classList.add('panel-hidden');
-      bookmarkPanel.classList.add('panel-hidden');
-      
-      if (settingsPanel.classList.contains('hidden')) {
-        settingsPanel.classList.remove('hidden');
-        settingsPanel.classList.remove('panel-hidden');
-        settingsPanel.classList.add('panel-visible');
+        const settingsPanel = document.getElementById('settings-panel');
+        const settingsOverlay = document.getElementById('settings-overlay');
+        const historyPanel = document.getElementById('history-panel');
+        const bookmarkPanel = document.getElementById('bookmark-panel');
         
-        renderSettingsBookmarks();
+        historyPanel.classList.add('panel-hidden');
+        bookmarkPanel.classList.add('panel-hidden');
         
-        settingsOverlay.classList.add('visible');
-      } else {
-        closeSettings();
-      }
+        if (settingsPanel.classList.contains('hidden')) {
+            settingsPanel.classList.remove('hidden');
+            settingsPanel.classList.remove('panel-hidden');
+            settingsPanel.classList.add('panel-visible');
+            
+            renderSettingsBookmarks();
+            
+            settingsOverlay.classList.add('visible');
+        } else {
+            closeSettings();
+        }
     }
 
     function closeSettings() {
-      const settingsPanel = document.getElementById('settings-panel');
-      const settingsOverlay = document.getElementById('settings-overlay');
-      
-      settingsPanel.classList.add('panel-hidden');
-      settingsOverlay.classList.remove('visible');
-      
-      setTimeout(() => {
-        settingsPanel.classList.add('hidden');
-        settingsPanel.classList.remove('panel-visible');
-      }, 300);
+        const settingsPanel = document.getElementById('settings-panel');
+        const settingsOverlay = document.getElementById('settings-overlay');
+        
+        settingsPanel.classList.add('panel-hidden');
+        settingsOverlay.classList.remove('visible');
+        
+        setTimeout(() => {
+            settingsPanel.classList.add('hidden');
+            settingsPanel.classList.remove('panel-visible');
+        }, 300);
     }
 
     function initializeThemeHandlers() {
-      const themeOptions = document.querySelectorAll('.theme-option');
-      
-      const savedTheme = localStorage.getItem('browser-theme') || 'light';
-      document.querySelector(`#theme-${savedTheme}`).classList.add('selected');
-      applyTheme(savedTheme);
+        const themeOptions = document.querySelectorAll('.theme-option');
+        
+        const savedTheme = localStorage.getItem('browser-theme') || 'light';
+        document.querySelector(`#theme-${savedTheme}`).classList.add('selected');
+        applyTheme(savedTheme);
 
-      themeOptions.forEach(option => {
-        option.addEventListener('click', (e) => {
-          themeOptions.forEach(opt => opt.classList.remove('selected'));
-          
-          option.classList.add('selected');
-          
-          const selectedTheme = option.getAttribute('data-theme');
-          applyTheme(selectedTheme);
-          localStorage.setItem('browser-theme', selectedTheme);
+        themeOptions.forEach(option => {
+            option.addEventListener('click', (e) => {
+                themeOptions.forEach(opt => opt.classList.remove('selected'));
+                
+                option.classList.add('selected');
+                
+                const selectedTheme = option.getAttribute('data-theme');
+                applyTheme(selectedTheme);
+                localStorage.setItem('browser-theme', selectedTheme);
+            });
         });
-      });
     }
 
     document.addEventListener('DOMContentLoaded', initializeThemeHandlers);
 
     document.addEventListener('keydown', function(event) {
-      if (event.ctrlKey && event.key === 'b') {
-        event.preventDefault();
-        toggleBookmarks();
-      }
+        if (event.ctrlKey && event.key === 'b') {
+            event.preventDefault();
+            toggleBookmarks();
+        }
     });
 
     function handleDragStart(event) {
-      event.preventDefault();
+        event.preventDefault();
     }
 
     function handleDragEnd(event) {
-      event.preventDefault();
+        event.preventDefault();
     }
 
     function handleDragOver(event) {
-      event.preventDefault();
+        event.preventDefault();
     }
 
     function handleDrop(event) {
-      event.preventDefault();
+        event.preventDefault();
     }
 
     function startBrowser() {
-      const mainMenu = document.getElementById('main-menu');
-      mainMenu.style.animation = 'fadeOut 0.3s ease-in-out forwards';
-      setTimeout(() => {
-        mainMenu.remove();
-      }, 300);
+        const mainMenu = document.getElementById('main-menu');
+        mainMenu.style.animation = 'fadeOut 0.3s ease-in-out forwards';
+        setTimeout(() => {
+            mainMenu.remove();
+        }, 300);
     }
 
-    function updateNavigationButtons() {
-      const tabHistory = tabHistories[currentTabId];
-      const backButton = document.getElementById('back-button');
-      const forwardButton = document.getElementById('forward-button');
-
-      if (tabHistory.index > 0) {
-        backButton.classList.remove('opacity-50', 'cursor-not-allowed');
-      } else {
-        backButton.classList.add('opacity-50', 'cursor-not-allowed');
-      }
-
-      if (tabHistory.index < tabHistory.history.length - 1) {
-        forwardButton.classList.remove('opacity-50', 'cursor-not-allowed');
-      } else {
-        forwardButton.classList.add('opacity-50', 'cursor-not-allowed');
-      }
-    }
+    document.addEventListener('DOMContentLoaded', () => {
+        initializeTabBar();
+        createNewTab();
+    });
 
     function showLoadingBar() {
-      const loadingBar = document.getElementById('loading-bar');
-      loadingBar.classList.add('loading');
-      
-      setTimeout(() => {
-        loadingBar.classList.remove('loading');
-      }, 1500);
+        const loadingBar = document.getElementById('loading-bar');
+        loadingBar.classList.add('loading');
+        
+        setTimeout(() => {
+            loadingBar.classList.remove('loading');
+        }, 1500);
     }
 
     function performHomeSearch() {
-      const searchInput = document.getElementById('home-search');
-      const query = searchInput.value.trim();
-      
-      if (query) {
-        showLoadingBar(); 
-        navigateToUrl(`https://www.bing.com/search?q=${encodeURIComponent(query)}`);
-        searchInput.value = '';
+        const searchInput = document.getElementById('home-search');
+        const query = searchInput.value.trim();
         
-        document.getElementById('browser-home').style.display = 'none';
-      }
+        if (query) {
+            showLoadingBar(); 
+            navigateToUrl(`https://www.bing.com/search?q=${encodeURIComponent(query)}`);
+            searchInput.value = '';
+            
+            document.getElementById('browser-home').style.display = 'none';
+        }
     }
 
     document.getElementById('home-search').addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        performHomeSearch();
-      }
+        if (e.key === 'Enter') {
+            performHomeSearch();
+        }
     });
 
     function displayHomeBookmarks() {
-      const homeBookmarksContainer = document.getElementById('home-bookmarks');
-      const recentBookmarks = bookmarks.slice(-8); // Get last 8 bookmarks
-      
-      homeBookmarksContainer.innerHTML = '';
-      
-      if (recentBookmarks.length === 0) {
-        homeBookmarksContainer.innerHTML = `
-          <div class="col-span-full text-center text-gray-500 py-8">
-            No bookmarks yet. Add some by clicking the star icon in the address bar!
-          </div>
-        `;
-        return;
-      }
-
-      recentBookmarks.forEach(bookmark => {
-        try {
-          const url = new URL(bookmark.url);
-          const bookmarkTile = document.createElement('div');
-          bookmarkTile.className = 'bg-gray-800 rounded-lg p-4 hover:bg-gray-700 cursor-pointer transition-colors duration-200';
-          bookmarkTile.innerHTML = `
-            <div class="flex items-center space-x-3 mb-2">
-              <img src="https://www.google.com/s2/favicons?domain=${url.hostname}" 
-                   class="w-5 h-5" alt="favicon">
-              <div class="text-sm font-medium truncate">${bookmark.title}</div>
-            </div>
-            <div class="text-xs text-gray-400 truncate">${url.hostname}</div>
-          `;
-          
-          bookmarkTile.addEventListener('click', () => {
-            navigateToUrl(bookmark.url);
-            document.getElementById('browser-home').style.display = 'none';
-          });
-          
-          homeBookmarksContainer.appendChild(bookmarkTile);
-        } catch (e) {
-          console.error('Invalid bookmark URL:', bookmark.url);
+        const homeBookmarksContainer = document.getElementById('home-bookmarks');
+        const recentBookmarks = bookmarks.slice(-8); // Get last 8 bookmarks
+        
+        homeBookmarksContainer.innerHTML = '';
+        
+        if (recentBookmarks.length === 0) {
+            homeBookmarksContainer.innerHTML = `
+                <div class="col-span-full text-center text-gray-500 py-8">
+                    No bookmarks yet. Add some by clicking the star icon in the address bar!
+                </div>
+            `;
+            return;
         }
-      });
+
+        recentBookmarks.forEach(bookmark => {
+            try {
+                const url = new URL(bookmark.url);
+                const bookmarkTile = document.createElement('div');
+                bookmarkTile.className = 'bg-gray-800 rounded-lg p-4 hover:bg-gray-700 cursor-pointer transition-colors duration-200';
+                bookmarkTile.innerHTML = `
+                    <div class="flex items-center space-x-3 mb-2">
+                        <img src="https://www.google.com/s2/favicons?domain=${url.hostname}" 
+                             class="w-5 h-5" alt="favicon">
+                        <div class="text-sm font-medium truncate">${bookmark.title}</div>
+                    </div>
+                    <div class="text-xs text-gray-400 truncate">${url.hostname}</div>
+                `;
+                
+                bookmarkTile.addEventListener('click', () => {
+                    navigateToUrl(bookmark.url);
+                    document.getElementById('browser-home').style.display = 'none';
+                });
+                
+                homeBookmarksContainer.appendChild(bookmarkTile);
+            } catch (e) {
+                console.error('Invalid bookmark URL:', bookmark.url);
+            }
+        });
     }
 
     function showHistory() {
-      const historyPanel = document.getElementById('history-panel');
-      const bookmarkPanel = document.getElementById('bookmark-panel');
-      const settingsPanel = document.getElementById('settings-panel');
-      
-      bookmarkPanel.classList.add('panel-hidden');
-      settingsPanel.classList.add('panel-hidden');
-      
-      if (historyPanel.classList.contains('hidden')) {
-        historyPanel.classList.remove('hidden');
-        historyPanel.classList.remove('panel-hidden');
-        historyPanel.classList.add('panel-visible');
-        loadHistoryEntries();
-      } else {
-        closeHistory();
-      }
+        const historyPanel = document.getElementById('history-panel');
+        const bookmarkPanel = document.getElementById('bookmark-panel');
+        const settingsPanel = document.getElementById('settings-panel');
+        
+        bookmarkPanel.classList.add('panel-hidden');
+        settingsPanel.classList.add('panel-hidden');
+        
+        if (historyPanel.classList.contains('hidden')) {
+            historyPanel.classList.remove('hidden');
+            historyPanel.classList.remove('panel-hidden');
+            historyPanel.classList.add('panel-visible');
+            loadHistoryEntries();
+        } else {
+            closeHistory();
+        }
     }
 
     function closeHistory() {
-      const historyPanel = document.getElementById('history-panel');
-      
-      historyPanel.classList.add('panel-hidden');
-      
-      setTimeout(() => {
-        historyPanel.classList.add('hidden');
-        historyPanel.classList.remove('panel-visible', 'panel-hidden');
-      }, 300);
+        const historyPanel = document.getElementById('history-panel');
+        
+        historyPanel.classList.add('panel-hidden');
+        
+        setTimeout(() => {
+            historyPanel.classList.add('hidden');
+            historyPanel.classList.remove('panel-visible');
+        }, 300);
     }
 
     function loadHistoryEntries() {
-      const historyEntriesContainer = document.getElementById('history-entries');
-      historyEntriesContainer.innerHTML = ''; // Clear previous entries
+        const historyEntriesContainer = document.getElementById('history-entries');
+        historyEntriesContainer.innerHTML = ''; // Clear previous entries
 
-      const allHistory = [];
-      Object.values(tabHistories).forEach(tabHistory => {
-        tabHistory.history.forEach((url, index) => {
-          if (url !== 'about:home' && url !== 'about:blank') {
-            allHistory.push(url);
-          }
+        const allHistory = [];
+        Object.values(tabHistories).forEach(tabHistory => {
+            tabHistory.history.forEach((url, index) => {
+                if (url !== 'about:home' && url !== 'about:blank') {
+                    allHistory.push(url);
+                }
+            });
         });
-      });
 
-      const uniqueHistory = [...new Set(allHistory)].slice(-50).reverse();
+        const uniqueHistory = [...new Set(allHistory)].slice(-50).reverse();
 
-      if (uniqueHistory.length === 0) {
-        historyEntriesContainer.innerHTML = `
-          <div class="text-center text-gray-500 py-8">
-            No browsing history available
-          </div>
-        `;
-        return;
-      }
-
-      uniqueHistory.forEach(url => {
-        try {
-          const parsedUrl = new URL(url);
-          const historyItem = document.createElement('div');
-          historyItem.className = 'p-3 hover:bg-gray-100 rounded cursor-pointer flex items-center space-x-3 border-b';
-
-          historyItem.innerHTML = `
-            <img src="https://www.google.com/s2/favicons?domain=${parsedUrl.hostname}" 
-                 class="w-5 h-5" alt="favicon" width="20" height="20">
-            <div class="flex-1">
-              <div class="text-sm truncate">${parsedUrl.hostname}</div>
-              <div class="text-xs text-gray-500 truncate">${url}</div>
-            </div>
-            <button class="text-gray-500 hover:text-red-500" onclick="removeHistoryEntry('${url}')">
-              <i class="fas fa-trash-alt"></i>
-            </button>
-          `;
-          
-          historyItem.addEventListener('click', () => {
-            navigateToUrl(url);
-            closeHistory();
-          });
-
-          historyEntriesContainer.appendChild(historyItem);
-        } catch (e) {
-          console.error('Invalid URL in history:', url);
+        if (uniqueHistory.length === 0) {
+            historyEntriesContainer.innerHTML = `
+                <div class="text-center text-gray-500 py-8">
+                    No browsing history available
+                </div>
+            `;
+            return;
         }
-      });
+
+        uniqueHistory.forEach(url => {
+            try {
+                const parsedUrl = new URL(url);
+                const historyItem = document.createElement('div');
+                historyItem.className = 'p-3 hover:bg-gray-100 rounded cursor-pointer flex items-center space-x-3 border-b';
+
+                historyItem.innerHTML = `
+                    <img src="https://www.google.com/s2/favicons?domain=${parsedUrl.hostname}" 
+                         class="w-5 h-5" alt="favicon" width="20" height="20">
+                    <div class="flex-1">
+                        <div class="text-sm truncate">${parsedUrl.hostname}</div>
+                        <div class="text-xs text-gray-500 truncate">${url}</div>
+                    </div>
+                    <button class="text-gray-500 hover:text-red-500" onclick="removeHistoryEntry('${url}')">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                `;
+                
+                historyItem.addEventListener('click', () => {
+                    navigateToUrl(url);
+                    closeHistory();
+                });
+
+                historyEntriesContainer.appendChild(historyItem);
+            } catch (e) {
+                console.error('Invalid URL in history:', url);
+            }
+        });
     }
 
     function removeHistoryEntry(url) {
-      Object.keys(tabHistories).forEach(tabId => {
-        const tabHistory = tabHistories[tabId];
-        tabHistory.history = tabHistory.history.filter(historyUrl => historyUrl !== url);
-        
-        if (tabHistory.index >= tabHistory.history.length) {
-          tabHistory.index = tabHistory.history.length - 1;
-        }
-      });
+        Object.keys(tabHistories).forEach(tabId => {
+            const tabHistory = tabHistories[tabId];
+            tabHistory.history = tabHistory.history.filter(historyUrl => historyUrl !== url);
+            
+            if (tabHistory.index >= tabHistory.history.length) {
+                tabHistory.index = tabHistory.history.length - 1;
+            }
+        });
 
-      loadHistoryEntries();
+        loadHistoryEntries();
     }
     
     function goHome() {
-      navigateToUrl('about:home');
-      document.getElementById('browser-home').style.display = 'flex';
-      displayHomeBookmarks();
+        navigateToUrl('about:home');
+        document.getElementById('browser-home').style.display = 'flex';
+        displayHomeBookmarks();
     }
 
-    function initializeFirstTab() {
-      const firstTabUrl = 'about:home';
-      const iframeContainer = document.getElementById('iframe-container');
-
-      const firstIframe = createIframe(firstTabUrl, 'mobile-tab');
-      iframeContainer.appendChild(firstIframe);
-
-      tabHistories['mobile-tab'] = { history: [firstTabUrl], index: 0 };
-      currentTabId = 'mobile-tab';
-
-      document.getElementById('browser-home').style.display = 'flex';
-      displayHomeBookmarks();
-    }
-    
     function reloadTab() {
-      try {
-        const currentIframe = document.getElementById(currentTabId);
-        if (currentIframe) {
-          showLoadingBar(); 
-          currentIframe.contentWindow.location.reload();
+        try {
+            const currentIframe = document.getElementById(currentTabId);
+            if (currentIframe) {
+                showLoadingBar(); 
+                currentIframe.contentWindow.location.reload();
+            }
+        } catch (error) {
+            console.error('Error reloading tab:', error);
+            const currentUrl = tabHistories[currentTabId].history[tabHistories[currentTabId].index];
+            navigateToUrl(currentUrl);
         }
-      } catch (error) {
-        console.error('Error reloading tab:', error);
-        const currentUrl = tabHistories[currentTabId].history[tabHistories[currentTabId].index];
-        navigateToUrl(currentUrl);
-      }
     }
 
     function applyTheme(theme) {
-      document.body.classList.remove('theme-light', 'theme-dark', 'theme-ocean', 'theme-forest', 'theme-sunset');
-      document.body.classList.add(`theme-${theme}`);
-      
-      const header = document.querySelector('header');
-      const tabBar = document.getElementById('tab-bar');
-      
-      header.className = `${theme}-header p-2 flex items-center space-x-1`;
-      tabBar.className = `${theme}-header flex items-center`;
+        document.body.classList.remove('theme-light', 'theme-dark', 'theme-ocean', 'theme-forest', 'theme-sunset');
+        document.body.classList.add(`theme-${theme}`);
+        
+        const header = document.querySelector('header');
+        const tabBar = document.getElementById('tab-bar');
+        
+        header.className = `${theme}-header p-2 flex items-center space-x-1`;
+        tabBar.className = `${theme}-header flex items-center`;
     }
 
     function isValidUrl(string) {
-      try {
-        new URL(string);
-        return true;
-      } catch {
-        return false;
-      }
+        try {
+            new URL(string);
+            return true;
+        } catch {
+            return false;
+        }
     }
 
     document.getElementById('omnibox').addEventListener('keypress', function(event) {
-      if (event.key === 'Enter') {
-        const input = this.value.trim();
-        let url = input;
+        if (event.key === 'Enter') {
+            const input = this.value.trim();
+            let url = input;
 
-        if (!isValidUrl(input)) {
-          if (/^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/.test(input)) {
-            url = `https://${input}`;
-          } else {
-            url = `https://www.bing.com/search?q=${encodeURIComponent(input)}`;
-          }
+            if (!isValidUrl(input)) {
+                if (/^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/.test(input)) {
+                    url = `https://${input}`;
+                } else {
+                    url = `https://www.bing.com/search?q=${encodeURIComponent(input)}`;
+                }
+            }
+
+            navigateToUrl(url);
+            this.value = url; 
+            this.classList.add('text-blue-600'); 
         }
-
-        navigateToUrl(url);
-        this.value = url; 
-        this.classList.add('text-blue-600'); 
-      }
     });
 
     function shareSwiftGuard() {
-      const shareData = {
-        title: 'SwiftGuard Browser',
-        text: 'Check out SwiftGuard, a privacy-focused web browser!',
-        url: window.location.href
-      };
+        const shareData = {
+            title: 'SwiftGuard Browser',
+            text: 'Check out SwiftGuard, a privacy-focused web browser!',
+            url: window.location.href
+        };
 
-      if (navigator.share) {
-        navigator.share(shareData)
-          .then(() => console.log('Successfully shared'))
-          .catch((error) => console.log('Error sharing:', error));
-      } else {
-        navigator.clipboard.writeText(`${shareData.title}\n\n${shareData.text}\n\n${shareData.url}`)
-          .then(() => {
-            alert('Link copied to clipboard! Share it with your friends.');
-          })
-          .catch((err) => {
-            console.error('Could not copy text: ', err);
-            alert('Unable to share. Please copy the link manually.');
-          });
-      }
+        if (navigator.share) {
+            navigator.share(shareData)
+                .then(() => console.log('Successfully shared'))
+                .catch((error) => console.log('Error sharing:', error));
+        } else {
+            navigator.clipboard.writeText(`${shareData.title}\n\n${shareData.text}\n\n${shareData.url}`)
+                .then(() => {
+                    alert('Link copied to clipboard! Share it with your friends.');
+                })
+                .catch((err) => {
+                    console.error('Could not copy text: ', err);
+                    alert('Unable to share. Please copy the link manually.');
+                });
+        }
     }
 
     function clearBrowsingData() {
-      Object.keys(tabHistories).forEach(tabId => {
-        tabHistories[tabId] = { history: ['about:home'], index: 0 };
-      });
+        Object.keys(tabHistories).forEach(tabId => {
+            tabHistories[tabId] = { history: ['about:home'], index: 0 };
+        });
 
-      bookmarks.length = 0;
+        bookmarks.length = 0;
 
-      goHome();
+        goHome();
 
-      localStorage.removeItem('browser-theme');
+        localStorage.removeItem('browser-theme');
 
-      alert('Browsing data cleared successfully!');
+        alert('Browsing data cleared successfully!');
 
-      displayHomeBookmarks();
-      
-      const savedTheme = localStorage.getItem('browser-theme') || 'light';
-      applyTheme(savedTheme);
+        displayHomeBookmarks();
+        
+        const savedTheme = localStorage.getItem('browser-theme') || 'light';
+        applyTheme(savedTheme);
 
-      closeSettings();
+        closeSettings();
     }
 
     function renderSettingsBookmarks() {
-      const settingsBookmarksContainer = document.getElementById('settings-bookmarks');
-      
-      settingsBookmarksContainer.innerHTML = '';
+        const settingsBookmarksContainer = document.getElementById('settings-bookmarks');
+        
+        settingsBookmarksContainer.innerHTML = '';
 
-      if (bookmarks.length === 0) {
-        settingsBookmarksContainer.innerHTML = `
-          <div class="text-center text-gray-500 py-4">
-            No bookmarks saved
-          </div>
-        `;
-        return;
-      }
-
-      bookmarks.forEach((bookmark, index) => {
-        try {
-          const url = new URL(bookmark.url);
-          const bookmarkItem = document.createElement('div');
-          bookmarkItem.className = 'flex items-center justify-between p-2 hover:bg-gray-100 rounded';
-          
-          bookmarkItem.innerHTML = `
-            <div class="flex items-center space-x-3">
-              <img src="https://www.google.com/s2/favicons?domain=${url.hostname}" 
-                   class="w-4 h-4" alt="favicon" width="16" height="16">
-              <div>
-                <div class="text-sm">${bookmark.title}</div>
-                <div class="text-xs text-gray-500 truncate max-w-[200px]">${bookmark.url}</div>
-              </div>
-            </div>
-            <button onclick="removeBookmarkFromSettings(${index})" class="text-red-500 hover:bg-red-100 p-1 rounded">
-              <i class="fas fa-trash-alt"></i>
-            </button>
-          `;
-          
-          settingsBookmarksContainer.appendChild(bookmarkItem);
-        } catch (e) {
-          console.error('Invalid bookmark URL:', bookmark.url);
+        if (bookmarks.length === 0) {
+            settingsBookmarksContainer.innerHTML = `
+                <div class="text-center text-gray-500 py-4">
+                    No bookmarks saved
+                </div>
+            `;
+            return;
         }
-      });
+
+        bookmarks.forEach((bookmark, index) => {
+            try {
+                const url = new URL(bookmark.url);
+                const bookmarkItem = document.createElement('div');
+                bookmarkItem.className = 'flex items-center justify-between p-2 hover:bg-gray-100 rounded';
+                
+                bookmarkItem.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <img src="https://www.google.com/s2/favicons?domain=${url.hostname}" 
+                             class="w-4 h-4" alt="favicon" width="16" height="16">
+                        <div>
+                            <div class="text-sm">${bookmark.title}</div>
+                            <div class="text-xs text-gray-500 truncate max-w-[200px]">${bookmark.url}</div>
+                        </div>
+                    </div>
+                    <button onclick="removeBookmarkFromSettings(${index})" class="text-red-500 hover:bg-red-100 p-1 rounded">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                `;
+                
+                settingsBookmarksContainer.appendChild(bookmarkItem);
+            } catch (e) {
+                console.error('Invalid bookmark URL:', bookmark.url);
+            }
+        });
     }
 
     function removeBookmarkFromSettings(index) {
-      bookmarks.splice(index, 1);
-      renderSettingsBookmarks();
-      loadBookmarks(); 
-      displayHomeBookmarks(); 
-    }
-
-    function deleteAllBookmarks() {
-      if (confirm('Are you sure you want to delete all bookmarks?')) {
-        bookmarks.length = 0; 
+        bookmarks.splice(index, 1);
         renderSettingsBookmarks();
         loadBookmarks(); 
         displayHomeBookmarks(); 
+    }
+
+    function deleteAllBookmarks() {
+        if (confirm('Are you sure you want to delete all bookmarks?')) {
+            bookmarks.length = 0; 
+            renderSettingsBookmarks();
+            loadBookmarks(); 
+            displayHomeBookmarks(); 
+        }
+    }
+
+    function toggleBookmark() {
+        const star = document.getElementById('bookmark-star');
+        const currentUrl = tabHistories[currentTabId].history[tabHistories[currentTabId].index];
+        
+        // Prevent bookmarking about:home or about:blank
+        if (currentUrl === 'about:home' || currentUrl === 'about:blank') {
+            alert('Cannot bookmark this page');
+            return;
+        }
+
+        try {
+            const url = new URL(currentUrl);
+            const title = document.querySelector(`#title-${currentTabId}`).textContent;
+
+            // Check if already bookmarked
+            const existingBookmarkIndex = bookmarks.findIndex(b => b.url === currentUrl);
+
+            if (existingBookmarkIndex !== -1) {
+                // Remove bookmark
+                bookmarks.splice(existingBookmarkIndex, 1);
+                star.classList.remove('text-yellow-400');
+                star.classList.add('text-gray-400');
+            } else {
+                // Add bookmark
+                bookmarks.push({ url: currentUrl, title: title });
+                star.classList.remove('text-gray-400');
+                star.classList.add('text-yellow-400');
+            }
+
+            // Update displays
+            loadBookmarks();
+            displayHomeBookmarks();
+            renderSettingsBookmarks();
+        } catch (error) {
+            console.error('Error toggling bookmark:', error);
+            alert('Unable to bookmark this page');
+        }
+    }
+
+    function createQRCode() {
+        const currentUrl = tabHistories[currentTabId].history[tabHistories[currentTabId].index];
+        
+        // Validate URL
+        if (!currentUrl || currentUrl === 'about:home' || currentUrl === 'about:blank') {
+            alert('Cannot generate QR code for this page.');
+            return;
+        }
+        
+        // Clear previous QR code
+        const qrContainer = document.getElementById('qr-code');
+        qrContainer.innerHTML = '';
+        
+        try {
+            // Create QR Code using Google Chart API
+            const qrImg = document.createElement('img');
+            qrImg.src = `https://chart.googleapis.com/chart?chs=250x250&cht=qr&chl=${encodeURIComponent(currentUrl)}`;
+            qrImg.alt = 'QR Code';
+            qrImg.className = 'mx-auto max-w-full h-auto';
+            
+            // Add loading indicator
+            const loadingSpinner = document.createElement('div');
+            loadingSpinner.className = 'text-center p-4';
+            loadingSpinner.textContent = 'Generating QR Code...';
+            
+            qrContainer.appendChild(loadingSpinner);
+            
+            qrImg.onload = () => {
+                qrContainer.innerHTML = ''; // Clear loading spinner
+                qrContainer.appendChild(qrImg);
+            };
+            
+            qrImg.onerror = () => {
+                qrContainer.innerHTML = `
+                    <div class="text-center text-red-500 p-4">
+                        Failed to generate QR code. Please try again.
+                    </div>
+                `;
+            };
+            
+            const qrModal = document.getElementById('qr-code-modal');
+            qrModal.style.display = 'flex';
+        } catch (error) {
+            console.error('QR Code generation error:', error);
+            alert('Failed to generate QR code.');
+        }
+    }
+
+    function closeQRCode() {
+        const qrModal = document.getElementById('qr-code-modal');
+        qrModal.style.display = 'none';
+    }
+
+    function toggleFullscreen() {
+        const iframe = document.getElementById(currentTabId);
+        
+        if (!document.fullscreenElement) {
+            if (iframe.requestFullscreen) {
+                iframe.requestFullscreen();
+            } else if (iframe.mozRequestFullScreen) { // Firefox
+                iframe.mozRequestFullScreen();
+            } else if (iframe.webkitRequestFullscreen) { // Chrome, Safari and Opera
+                iframe.webkitRequestFullscreen();
+            } else if (iframe.msRequestFullscreen) { // Internet Explorer/Edge
+                iframe.msRequestFullscreen();
+            }
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            } else if (document.mozCancelFullScreen) { // Firefox
+                document.mozCancelFullScreen();
+            } else if (document.webkitExitFullscreen) { // Chrome, Safari and Opera
+                document.webkitExitFullscreen();
+            } else if (document.msExitFullscreen) { // Internet Explorer/Edge
+                document.msExitFullscreen();
+            }
+        }
+    }
+
+    function initializeEruda() {
+        try {
+            // Check if Eruda is already loaded
+            if (!window.eruda) {
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/eruda';
+                script.onload = () => {
+                    eruda.init({
+                        container: document.getElementById('inspect-overlay'),
+                        tool: ['console', 'elements', 'network', 'resources']
+                    });
+                };
+                document.body.appendChild(script);
+            } else {
+                eruda.init({
+                    container: document.getElementById('inspect-overlay'),
+                    tool: ['console', 'elements', 'network', 'resources']
+                });
+            }
+        } catch (error) {
+            console.error('Could not initialize Eruda:', error);
+            alert('Failed to initialize developer tools.');
+        }
+    }
+
+    function toggleInspectMode() {
+        const iframe = document.getElementById(currentTabId);
+        const overlay = document.getElementById('inspect-overlay');
+        
+        try {
+            if (!overlay.dataset.active) {
+                // Enable Inspect Mode with Eruda
+                overlay.style.display = 'block';
+                overlay.dataset.active = 'true';
+                
+                initializeEruda();
+            } else {
+                // Disable Inspect Mode
+                overlay.style.display = 'none';
+                delete overlay.dataset.active;
+                
+                // Destroy Eruda
+                if (window.eruda) {
+                    eruda.destroy();
+                }
+            }
+        } catch (error) {
+            console.error('Inspect mode toggle error:', error);
+            alert('Cannot toggle inspect mode due to restrictions.');
+        }
+    }
+
+    function showElementInfo(event) {
+        const inspectInfo = document.getElementById('inspect-info');
+        const target = event.target;
+        
+        // Get basic element info
+        const tagName = target.tagName.toLowerCase();
+        const classes = Array.from(target.classList).join(' ');
+        const id = target.id;
+        
+        inspectInfo.textContent = `<${tagName}> | ID: ${id || 'none'} | Classes: ${classes || 'none'}`;
+    }
+
+    document.getElementById('qr-code-modal').addEventListener('click', function(event) {
+        if (event.target === this) {
+            closeQRCode();
+        }
+    });
+
+    function zoomOut() {
+        const iframe = document.getElementById(currentTabId);
+        if (currentZoomLevel > 50) {
+            currentZoomLevel -= 10;
+            updateZoom(iframe);
+        }
+    }
+
+    function zoomIn() {
+        const iframe = document.getElementById(currentTabId);
+        if (currentZoomLevel < 200) {
+            currentZoomLevel += 10;
+            updateZoom(iframe);
+        }
+    }
+
+    function updateZoom(iframe) {
+        try {
+            iframe.style.transform = `scale(${currentZoomLevel / 100})`;
+            iframe.style.transformOrigin = 'top left';
+            document.getElementById('zoom-level').textContent = `${currentZoomLevel}%`;
+        } catch (error) {
+            console.error('Error updating zoom:', error);
+            alert('Cannot zoom due to content restrictions.');
+        }
+    }
+
+    function resetZoom() {
+        const iframe = document.getElementById(currentTabId);
+        currentZoomLevel = 100;
+        updateZoom(iframe);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const contextMenu = document.getElementById('custom-context-menu');
+      const iframe = document.getElementById(currentTabId);
+
+      // Prevent default right-click on iframes
+      document.addEventListener('contextmenu', function(e) {
+        // Check if right-click is on an iframe or the main content area
+        if (e.target.tagName === 'IFRAME' || e.target.closest('#iframe-container')) {
+          e.preventDefault();
+          showContextMenu(e);
+        }
+      });
+
+      // Close context menu when clicking outside
+      document.addEventListener('click', function(e) {
+        if (!contextMenu.contains(e.target)) {
+          contextMenu.style.display = 'none';
+        }
+      });
+    });
+
+    function showContextMenu(e) {
+      const contextMenu = document.getElementById('custom-context-menu');
+      contextMenu.style.display = 'block';
+      contextMenu.style.left = `${e.clientX}px`;
+      contextMenu.style.top = `${e.clientY}px`;
+    }
+
+    function showPerformanceInfo() {
+      const iframe = document.getElementById(currentTabId);
+      
+      try {
+        const performanceEntries = iframe.contentWindow.performance.getEntries();
+        const loadTime = performanceEntries.find(entry => entry.entryType === 'navigation');
+
+        // Memory Usage
+        const memory = iframe.contentWindow.performance.memory;
+        const usedJSHeapSize = memory ? (memory.usedJSHeapSize / 1024 / 1024).toFixed(2) : 'N/A';
+        const totalJSHeapSize = memory ? (memory.totalJSHeapSize / 1024 / 1024).toFixed(2) : 'N/A';
+
+        // Estimated FPS (requires requestAnimationFrame)
+        let fps = 'Not available';
+        if (iframe.contentWindow.requestAnimationFrame) {
+            let frameCount = 0;
+            let lastTime = performance.now();
+
+            function measureFPS(timestamp) {
+                frameCount++;
+                if (timestamp - lastTime >= 1000) {
+                    fps = frameCount;
+                    lastTime = timestamp;
+                    frameCount = 0;
+                }
+                iframe.contentWindow.requestAnimationFrame(measureFPS);
+            }
+            
+            iframe.contentWindow.requestAnimationFrame(measureFPS);
+        }
+
+        let performanceInfo = 'Performance Details:\n\n';
+        
+        if (loadTime) {
+            performanceInfo += `Page Load Time: ${Math.round(loadTime.loadEventEnd - loadTime.startTime)} ms\n`;
+            performanceInfo += `DNS Lookup: ${Math.round(loadTime.domainLookupEnd - loadTime.domainLookupStart)} ms\n`;
+            performanceInfo += `TCP Connection: ${Math.round(loadTime.connectEnd - loadTime.connectStart)} ms\n`;
+        }
+
+        performanceInfo += `\nMemory Usage:\n`;
+        performanceInfo += `Used JS Heap: ${usedJSHeapSize} MB\n`;
+        performanceInfo += `Total JS Heap: ${totalJSHeapSize} MB\n`;
+        performanceInfo += `Estimated FPS: ${fps}\n`;
+
+        // Use a modal or custom alert for better formatting
+        const performanceModal = document.createElement('div');
+        performanceModal.style.position = 'fixed';
+        performanceModal.style.top = '50%';
+        performanceModal.style.left = '50%';
+        performanceModal.style.transform = 'translate(-50%, -50%)';
+        performanceModal.style.backgroundColor = 'white';
+        performanceModal.style.padding = '20px';
+        performanceModal.style.borderRadius = '10px';
+        performanceModal.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
+        performanceModal.style.zIndex = '1000';
+        performanceModal.innerHTML = `
+            <h2 style="margin-bottom: 15px; font-weight: bold;">Performance Metrics</h2>
+            <pre style="white-space: pre-wrap;">${performanceInfo}</pre>
+            <button onclick="this.closest('div').remove()" style="margin-top: 15px; padding: 10px; background-color: #3b82f6; color: white; border-radius: 5px;">Close</button>
+        `;
+
+        document.body.appendChild(performanceModal);
+      } catch (error) {
+        alert('Unable to retrieve performance data due to cross-origin restrictions.');
       }
+
+      // Close context menu
+      document.getElementById('custom-context-menu').style.display = 'none';
     }
   </script>
 </body>
